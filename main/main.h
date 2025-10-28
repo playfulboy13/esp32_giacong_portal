@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
+#include <ctype.h>
+
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/semphr.h"
@@ -19,6 +21,13 @@
 #include "mqtt_client.h"
 #include "esp_system.h"
 #include "esp_log.h"
+#include <stdbool.h>
+#include "esp_err.h"
+
+#include "esp_event.h"
+#include "esp_netif.h"
+#include "esp_timer.h"
+#include "esp_mac.h"   // Chứa MAC2STR và MACSTR
 
 #include "user_task.h"
 #include "mqtt.h"
