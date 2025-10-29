@@ -31,6 +31,9 @@
 
 #include "user_task.h"
 #include "mqtt.h"
+#include "dht.h"
+
+#include "dht11.h"
 
 extern const char *TAG;
 

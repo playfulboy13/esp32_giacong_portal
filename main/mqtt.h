@@ -3,6 +3,7 @@
 
 #include "main.h"
 #include "user_task.h"
+#include "dht11.h"
 
 
 #define RESET_BTN_GPIO 34

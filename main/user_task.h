@@ -19,6 +19,7 @@
 #define RELAY2_BIT 1
 #define LED1_BIT 2
 #define LED2_BIT 3
+#define BUZZER_BIT 4
 
 extern uint8_t output_state;
 
@@ -32,6 +33,8 @@ void led1_on(void);
 void led1_off(void);
 void led2_on(void);
 void led2_off(void);
+void buzzer_on(void);
+void buzzer_off(void);
 void Task1(void *pvParameters);
 void TaskLed(void *pvParameters);
 

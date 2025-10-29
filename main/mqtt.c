@@ -531,14 +531,44 @@ void wifi_init(void)
 
 }
 
+void beep_on(void)
+{
+    // Bíp dài
+    buzzer_on();
+    vTaskDelay(pdMS_TO_TICKS(200));
+    buzzer_off();
+}
+
+void beep_off(void)
+{
+    // Bíp đôi ngắn
+    for(int i=0; i<2; i++)
+    {
+        buzzer_on();
+        vTaskDelay(pdMS_TO_TICKS(80));
+        buzzer_off();
+        vTaskDelay(pdMS_TO_TICKS(80));
+    }
+}
+
+
 void TaskPublish(void *pvParameters)
 {
     char buffer[64];
-   uint8_t count=0;
+    char room_temp[64];
+    char room_humid[64];
+    uint8_t count=0;
     while(1)
     {
         snprintf(buffer,sizeof(buffer),"HELLO MQTT, count: %d",count);
+        snprintf(room_temp,sizeof(room_temp),"%.1f",(float)temperature/10);
+        snprintf(room_humid,sizeof(room_humid),"%.1f",(float)humidity/10);
+        
+
         esp_mqtt_client_publish(global_client,"namban123/test",buffer,0,0,false);
+        esp_mqtt_client_publish(global_client,"namban123/room_temp/dht11_temp",room_temp,0,0,false);
+         esp_mqtt_client_publish(global_client,"namban123/room_humid/dht11_humid",room_humid,0,0,false);
+
         count++;
         if(count>99)
         {
@@ -563,23 +593,27 @@ void TaskSubScribe(void *pvParameters)
                 if(strcmp(rxBuffer.data,"RELAY1_ON")==0)
                 {
                     relay1_on();
+                    beep_on();
                     ESP_LOGI(TAG,"RELAY 1 ON\r\n");
                 }
                 else if(strcmp(rxBuffer.data,"RELAY1_OFF")==0)
                 {
                     relay1_off();
+                    beep_off();
                     ESP_LOGI(TAG,"RELAY 1 OFF\r\n");
                 }
 
                 else if(strcmp(rxBuffer.data,"RELAY2_ON")==0)
                 {
                     relay2_on();
+                    beep_on();
                     ESP_LOGI(TAG,"RELAY 2 ON\r\n");
                 }
 
                 else if(strcmp(rxBuffer.data,"RELAY2_OFF")==0)
                 {
                     relay2_off();
+                    beep_off();
                     ESP_LOGI(TAG,"RELAY 2 OFF\r\n");
                 }
             }

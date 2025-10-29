@@ -75,6 +75,17 @@ void led2_off(void)
     xuat_1_byte(output_state);
 }
 
+void buzzer_on(void)
+{
+    output_state|=(1<<BUZZER_BIT);
+    xuat_1_byte(output_state);
+}
+void buzzer_off(void)
+{
+    output_state&=~(1<<BUZZER_BIT);
+    xuat_1_byte(output_state);
+}
+
 void uart1_init(void)
 {
     const uart_config_t uart_config = {
@@ -140,8 +151,10 @@ void TaskLed(void *pvParameters)
         {
             // WiFi chưa kết nối -> LED1 nháy đều
             led1_on();
+            buzzer_on();
             vTaskDelay(pdMS_TO_TICKS(500));
             led1_off();
+            buzzer_off();
             vTaskDelay(pdMS_TO_TICKS(500));
 
             // Khi WiFi chưa có, MQTT chắc chắn cũng chưa dùng được
