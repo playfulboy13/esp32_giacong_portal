@@ -28,12 +28,14 @@
 #include "esp_netif.h"
 #include "esp_timer.h"
 #include "esp_mac.h"   // Chứa MAC2STR và MACSTR
+#include "esp_sntp.h"
 
 #include "user_task.h"
 #include "mqtt.h"
 #include "dht.h"
 
 #include "dht11.h"
+#include "ds3231.h"
 
 extern const char *TAG;
 

@@ -517,6 +517,7 @@ void wifi_init(void)
             mqtt_app_start();
             xTaskCreate(TaskPublish,"TaskPublish",4096,NULL,5,NULL);
             xTaskCreate(TaskSubScribe,"TaskSubScribe",4096,NULL,5,NULL);
+            xTaskCreate(rtc_task,"rtc_task",4096,NULL,5,NULL);
             return;
         } else {
             ESP_LOGW(TAG, "STA connect failed. Fallback to AP portal.");
@@ -551,29 +552,55 @@ void beep_off(void)
     }
 }
 
-
 void TaskPublish(void *pvParameters)
 {
     char buffer[64];
     char room_temp[64];
     char room_humid[64];
-    uint8_t count=0;
-    while(1)
+    char time_str[64];
+    char ds3231_temp[64];
+    char wifi_rssi[32];
+    uint8_t count = 0;
+
+    wifi_ap_record_t ap_info;
+
+    while (1)
     {
-        snprintf(buffer,sizeof(buffer),"HELLO MQTT, count: %d",count);
-        snprintf(room_temp,sizeof(room_temp),"%.1f",(float)temperature/10);
-        snprintf(room_humid,sizeof(room_humid),"%.1f",(float)humidity/10);
-        
-
-        esp_mqtt_client_publish(global_client,"namban123/test",buffer,0,0,false);
-        esp_mqtt_client_publish(global_client,"namban123/room_temp/dht11_temp",room_temp,0,0,false);
-         esp_mqtt_client_publish(global_client,"namban123/room_humid/dht11_humid",room_humid,0,0,false);
-
-        count++;
-        if(count>99)
+        // --- Lấy RSSI WiFi ---
+        if (esp_wifi_sta_get_ap_info(&ap_info) == ESP_OK)
         {
-            count=0;
+            snprintf(wifi_rssi, sizeof(wifi_rssi), "%d", ap_info.rssi);
         }
+        else
+        {
+            snprintf(wifi_rssi, sizeof(wifi_rssi), "N/A");
+        }
+
+        // --- Các dữ liệu khác ---
+        snprintf(buffer, sizeof(buffer), "HELLO MQTT, count: %d", count);
+        snprintf(room_temp, sizeof(room_temp), "%.1f", (float)temperature / 10);
+        snprintf(room_humid, sizeof(room_humid), "%.1f", (float)humidity / 10);
+        snprintf(time_str, sizeof(time_str),
+                 "Time:%02d:%02d:%02d/T:%02d/Date:%02d-%02d-%04d",
+                 rtc_time.hour, rtc_time.min, rtc_time.sec,
+                 rtc_time.day_of_week, rtc_time.day, rtc_time.month, rtc_time.year);
+        snprintf(ds3231_temp, sizeof(ds3231_temp), "%.1f", temp_ds3231);
+
+        // --- Publish MQTT ---
+        esp_mqtt_client_publish(global_client, "namban123/test", buffer, 0, 0, false);
+        esp_mqtt_client_publish(global_client, "namban123/room_temp/dht11_temp", room_temp, 0, 0, false);
+        esp_mqtt_client_publish(global_client, "namban123/room_humid/dht11_humid", room_humid, 0, 0, false);
+        esp_mqtt_client_publish(global_client, "namban123/room_temp/ds3231_temp", ds3231_temp, 0, 0, false);
+        esp_mqtt_client_publish(global_client, "namban123/rtc_time", time_str, 0, 0, false);
+        esp_mqtt_client_publish(global_client, "namban123/wifi_rssi", wifi_rssi, 0, 0, false);
+
+        // --- Bộ đếm ---
+        count++;
+        if (count > 99)
+        {
+            count = 0;
+        }
+
         vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }
