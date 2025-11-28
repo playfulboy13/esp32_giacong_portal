@@ -123,12 +123,17 @@ float temp_ds3231=0.0;
 
 void sync_time_from_ntp(void)
 {
-    ESP_LOGI(TAG, "Khởi tạo SNTP...");
-    
-    // Không cần gọi sntp_stop() trong ESP-IDF 5.4
-    sntp_setoperatingmode(SNTP_OPMODE_POLL);
-    sntp_setservername(0, "pool.ntp.org");
-    sntp_init();
+    // Kiểm tra SNTP đã chạy chưa, chỉ init nếu chưa
+    static bool sntp_inited = false;
+    if (!sntp_inited) {
+        ESP_LOGI(TAG, "Khởi tạo SNTP lần đầu...");
+        sntp_setoperatingmode(SNTP_OPMODE_POLL);
+        sntp_setservername(0, "pool.ntp.org");
+        sntp_init();
+        sntp_inited = true;
+    } else {
+        ESP_LOGI(TAG, "SNTP đã chạy, bỏ qua init");
+    }
 
     // Chờ NTP đồng bộ
     time_t now = 0;
@@ -148,7 +153,7 @@ void sync_time_from_ntp(void)
         return;
     }
 
-    // Chuyển sang múi giờ GMT+7 (Việt Nam)
+    // Cập nhật múi giờ GMT+7
     setenv("TZ", "ICT-7", 1);
     tzset();
 
@@ -168,11 +173,10 @@ void sync_time_from_ntp(void)
         .month = timeinfo.tm_mon + 1,
         .year = timeinfo.tm_year + 1900
     };
-
     ds3231_set_time(&rtc_set);
     ESP_LOGI(TAG, "Đã cập nhật giờ vào DS3231.");
 
-    last_ntp_sync_time = now; // Lưu lại thời điểm đồng bộ gần nhất
+    last_ntp_sync_time = now;
 }
 
 void rtc_task(void *pvParameters)
@@ -193,7 +197,7 @@ void rtc_task(void *pvParameters)
     i2c_mutex = xSemaphoreCreateMutex();
     ds3231_init(i2c_mutex);
 
-    // 🔹 Đồng bộ NTP khi khởi động
+    // 🔹 Đồng bộ NTP lần đầu
     sync_time_from_ntp();
 
     while (1) {
@@ -207,12 +211,12 @@ void rtc_task(void *pvParameters)
             ESP_LOGE(TAG, "Failed to read time");
         }
 
-        // 🔹 Cập nhật lại NTP mỗi 24h
+        // 🔹 Đồng bộ lại NTP mỗi 24h nếu SNTP đã chạy
         time_t current_time;
         time(&current_time);
         if (difftime(current_time, last_ntp_sync_time) > NTP_SYNC_INTERVAL_SEC) {
-            ESP_LOGI(TAG, "Đã quá 24h - tiến hành đồng bộ NTP lại...");
-            sync_time_from_ntp();
+            ESP_LOGI(TAG, "Đã quá 24h - kiểm tra SNTP trước khi đồng bộ lại...");
+            sync_time_from_ntp(); // sẽ bỏ qua init nếu SNTP đang chạy
         }
 
         vTaskDelay(pdMS_TO_TICKS(1000));

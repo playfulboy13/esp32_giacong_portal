@@ -30,12 +30,17 @@
 #include "esp_mac.h"   // Chứa MAC2STR và MACSTR
 #include "esp_sntp.h"
 
+#include "cJSON.h"  // ESP-IDF cJSON
+
 #include "user_task.h"
 #include "mqtt.h"
 #include "dht.h"
 
 #include "dht11.h"
 #include "ds3231.h"
+#include "lora_uart.h"
+
+#include "lora_uart.h"
 
 extern const char *TAG;
 

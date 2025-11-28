@@ -576,7 +576,7 @@ void TaskPublish(void *pvParameters)
             snprintf(wifi_rssi, sizeof(wifi_rssi), "N/A");
         }
 
-        // --- Các dữ liệu khác ---
+        // --- Các dữ liệu cũ ---
         snprintf(buffer, sizeof(buffer), "HELLO MQTT, count: %d", count);
         snprintf(room_temp, sizeof(room_temp), "%.1f", (float)temperature / 10);
         snprintf(room_humid, sizeof(room_humid), "%.1f", (float)humidity / 10);
@@ -586,7 +586,7 @@ void TaskPublish(void *pvParameters)
                  rtc_time.day_of_week, rtc_time.day, rtc_time.month, rtc_time.year);
         snprintf(ds3231_temp, sizeof(ds3231_temp), "%.1f", temp_ds3231);
 
-        // --- Publish MQTT ---
+        // --- Publish MQTT cũ ---
         esp_mqtt_client_publish(global_client, "namban123/test", buffer, 0, 0, false);
         esp_mqtt_client_publish(global_client, "namban123/room_temp/dht11_temp", room_temp, 0, 0, false);
         esp_mqtt_client_publish(global_client, "namban123/room_humid/dht11_humid", room_humid, 0, 0, false);
@@ -594,16 +594,62 @@ void TaskPublish(void *pvParameters)
         esp_mqtt_client_publish(global_client, "namban123/rtc_time", time_str, 0, 0, false);
         esp_mqtt_client_publish(global_client, "namban123/wifi_rssi", wifi_rssi, 0, 0, false);
 
-        // --- Bộ đếm ---
-        count++;
-        if (count > 99)
+        // --- Publish dữ liệu từng node dưới dạng JSON ---
+        for (int n = 0; n < 3; n++)
         {
-            count = 0;
+            cJSON *root = cJSON_CreateObject();
+            cJSON *sensors = cJSON_CreateArray();
+            char buf[16];
+
+            for (int i = 0; i < 8; i++)
+            {
+                snprintf(buf, sizeof(buf), "%.1f", node_data[n].sensor[i]);
+                cJSON_AddItemToArray(sensors, cJSON_CreateString(buf));
+            }
+
+            cJSON_AddItemToObject(root, "sensor", sensors);
+            cJSON_AddNumberToObject(root, "cnt", node_data[n].cnt);
+            cJSON_AddNumberToObject(root, "param", node_data[n].param);
+            cJSON_AddNumberToObject(root, "rssi", node_data[n].rssi);
+
+            char *json_str = cJSON_PrintUnformatted(root);
+            char topic[64];
+            snprintf(topic, sizeof(topic), "namban123/node%d", n + 1);
+            esp_mqtt_client_publish(global_client, topic, json_str, 0, 1, false);
+
+            cJSON_Delete(root);
+            free(json_str);
         }
 
-        vTaskDelay(pdMS_TO_TICKS(1000));
+        // --- Publish trạng thái LORA (fake sensor + lost_rate + total_packets) ---
+        cJSON *lora_root = cJSON_CreateObject();
+        cJSON *fake_sensors = cJSON_CreateArray();
+        char buf[16];
+
+        for (int i = 0; i < FAKE_SENSOR_COUNT; i++)
+        {
+            snprintf(buf, sizeof(buf), "%.1f", lora_info.fake_sensor[i]);
+            cJSON_AddItemToArray(fake_sensors, cJSON_CreateString(buf));
+        }
+
+        cJSON_AddItemToObject(lora_root, "fake_sensor", fake_sensors);
+        cJSON_AddNumberToObject(lora_root, "lost_rate", lora_info.lost_rate);
+        cJSON_AddNumberToObject(lora_root, "total_packets", lora_info.total_packets);
+
+        char *lora_str = cJSON_PrintUnformatted(lora_root);
+        esp_mqtt_client_publish(global_client, "namban123/lora_status", lora_str, 0, 1, false);
+
+        cJSON_Delete(lora_root);
+        free(lora_str);
+
+        // --- Bộ đếm ---
+        count++;
+        if (count > 99) count = 0;
+
+        vTaskDelay(pdMS_TO_TICKS(700));
     }
 }
+
 
 void TaskSubScribe(void *pvParameters)
 {

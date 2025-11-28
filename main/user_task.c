@@ -86,27 +86,9 @@ void buzzer_off(void)
     xuat_1_byte(output_state);
 }
 
-void uart1_init(void)
-{
-    const uart_config_t uart_config = {
-        .baud_rate = 115200,
-        .data_bits = UART_DATA_8_BITS,
-        .parity    = UART_PARITY_DISABLE,
-        .stop_bits = UART_STOP_BITS_1,
-        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE
-    };
-
-    uart_param_config(UART_PORT, &uart_config);
-    uart_set_pin(UART_PORT, UART_TX_PIN, UART_RX_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
-    uart_driver_install(UART_PORT, 1024, 0, 0, NULL, 0);
-
-   
-}
-
 void Task1(void *pvParameters)
 {
     gpio_init_config();
-    uart1_init();
 
     const char *test_str = "Hello from UART1 (TX=17, RX=16)\r\n";
 
