@@ -4,6 +4,9 @@
 #include "main.h"
 #include "mqtt.h"
 
+extern const uint8_t test_nodes[];
+extern const uint8_t test_states[]; // LED/relay giả lập
+
 #define DS_PIN 25
 #define SH_CP_PIN 26
 #define ST_CP_PIN 27
@@ -25,6 +28,7 @@ extern uint8_t output_state;
 
 void xuat_1_byte(uint8_t data);
 void gpio_init_config(void);
+void send_relay_cmd(uint8_t node_id, uint8_t state);
 void relay1_on(void);
 void relay1_off(void);
 void relay2_on(void);
@@ -42,6 +46,8 @@ void TaskLed(void *pvParameters);
 #define UART_PORT       UART_NUM_1  // Dùng UART1
 #define UART_TX_PIN     17          // TX = GPIO17
 #define UART_RX_PIN     16          // RX = GPIO16
+
+
 
 
 void Task1(void *pvParameters);

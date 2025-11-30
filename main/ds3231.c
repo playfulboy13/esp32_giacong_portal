@@ -214,7 +214,7 @@ void rtc_task(void *pvParameters)
         // 🔹 Đồng bộ lại NTP mỗi 24h nếu SNTP đã chạy
         time_t current_time;
         time(&current_time);
-        if (difftime(current_time, last_ntp_sync_time) > NTP_SYNC_INTERVAL_SEC) {
+            if (difftime(current_time, last_ntp_sync_time) > NTP_SYNC_INTERVAL_SEC) {
             ESP_LOGI(TAG, "Đã quá 24h - kiểm tra SNTP trước khi đồng bộ lại...");
             sync_time_from_ntp(); // sẽ bỏ qua init nếu SNTP đang chạy
         }

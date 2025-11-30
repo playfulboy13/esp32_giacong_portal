@@ -4,6 +4,7 @@ const char *TAG="HQ PRC IoT";
 
 void app_main(void)
 {
+    gpio_init_config();
     relay1_off();
     relay2_off();
     wifi_init();

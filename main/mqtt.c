@@ -656,40 +656,74 @@ void TaskSubScribe(void *pvParameters)
     mqtt_msg_t rxBuffer;
     while(1)
     {
-        if(xQueueReceive(mqtt_msg_queue,&rxBuffer,portMAX_DELAY)==pdTRUE)
+        if(xQueueReceive(mqtt_msg_queue, &rxBuffer, portMAX_DELAY) == pdTRUE)
         {
-            if(strcmp(rxBuffer.topic,"namban123/control")==0)
+            if(strcmp(rxBuffer.topic, "namban123/control") == 0)
             {
                 trim_new_line(rxBuffer.data);
-                ESP_LOGI(TAG,"%s\r\n",rxBuffer.data);
+                ESP_LOGI(TAG, "%s\r\n", rxBuffer.data);
 
-                if(strcmp(rxBuffer.data,"RELAY1_ON")==0)
+                // =========================
+                // Local relay control
+                // =========================
+                if(strcmp(rxBuffer.data, "RELAY1_ON") == 0)
                 {
                     relay1_on();
                     beep_on();
-                    ESP_LOGI(TAG,"RELAY 1 ON\r\n");
+                    ESP_LOGI(TAG, "RELAY 1 ON\r\n");
                 }
-                else if(strcmp(rxBuffer.data,"RELAY1_OFF")==0)
+                else if(strcmp(rxBuffer.data, "RELAY1_OFF") == 0)
                 {
                     relay1_off();
                     beep_off();
-                    ESP_LOGI(TAG,"RELAY 1 OFF\r\n");
+                    ESP_LOGI(TAG, "RELAY 1 OFF\r\n");
                 }
-
-                else if(strcmp(rxBuffer.data,"RELAY2_ON")==0)
+                else if(strcmp(rxBuffer.data, "RELAY2_ON") == 0)
                 {
                     relay2_on();
                     beep_on();
-                    ESP_LOGI(TAG,"RELAY 2 ON\r\n");
+                    ESP_LOGI(TAG, "RELAY 2 ON\r\n");
                 }
-
-                else if(strcmp(rxBuffer.data,"RELAY2_OFF")==0)
+                else if(strcmp(rxBuffer.data, "RELAY2_OFF") == 0)
                 {
                     relay2_off();
                     beep_off();
-                    ESP_LOGI(TAG,"RELAY 2 OFF\r\n");
+                    ESP_LOGI(TAG, "RELAY 2 OFF\r\n");
+                }
+
+                // =========================
+                // Node relay control
+                // Lệnh dạng NODE<ID>_RELAY<N>_ON/OFF
+                // Ví dụ: NODE01_RELAY1_ON
+                // =========================
+                else if(strncmp(rxBuffer.data, "NODE", 4) == 0)
+                {
+                    uint8_t node_id = 0;
+                    uint8_t relay_bit = 0;
+                    bool turn_on = false;
+
+                    // Parse node id, relay number và trạng thái ON/OFF
+                    if(sscanf(rxBuffer.data, "NODE%2hhu_RELAY%hhu_%3s",
+                              &node_id, &relay_bit, rxBuffer.data) == 3)
+                    {
+                        if(strcmp(rxBuffer.data, "ON") == 0)
+                            turn_on = true;
+                        else if(strcmp(rxBuffer.data, "OFF") == 0)
+                            turn_on = false;
+                        else
+                            continue;
+
+                        uint8_t state = turn_on ? (1 << (relay_bit-1)) : 0x00;
+
+                        // Gửi lệnh relay đến node qua UART
+                        send_relay_cmd(node_id, state);
+
+                        ESP_LOGI(TAG, "Sent relay cmd to NODE %02X, RELAY %d %s",
+                                 node_id, relay_bit, turn_on ? "ON" : "OFF");
+                    }
                 }
             }
         }
     }
 }
+

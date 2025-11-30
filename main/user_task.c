@@ -3,6 +3,10 @@
 
 uint8_t output_state=0x00;
 
+// Node test
+const uint8_t test_nodes[] = {0x01, 0x02, 0x03};
+const uint8_t test_states[] = {0x01, 0x02, 0x04, 0x08}; // LED/relay giả lập
+
 void gpio_init_config(void)
 {
     gpio_reset_pin(DS_PIN);
@@ -85,18 +89,47 @@ void buzzer_off(void)
     output_state&=~(1<<BUZZER_BIT);
     xuat_1_byte(output_state);
 }
+// Hàm gửi lệnh relay qua UART
+void send_relay_cmd(uint8_t node_id, uint8_t state)
+{
+    uint8_t frame[4];
+    frame[0] = 0xAA;      // START
+    frame[1] = node_id;   // Node ID
+    frame[2] = state;     // Relay state
+    frame[3] = 0x55;      // END
 
+    // Gửi qua UART
+    uart_write_bytes(UART_PORT, (const char*)frame, 4);
+
+    // In log
+   // printf("[ESP32] Sent: Node %02X, State 0x%02X\r\n", node_id, state);
+}
+
+// Task tổng quát quét node và relay
 void Task1(void *pvParameters)
 {
-    gpio_init_config();
-
-    const char *test_str = "Hello from UART1 (TX=17, RX=16)\r\n";
+    (void)pvParameters;
 
     while(1)
     {
-        //ESP_LOGI(TAG,"ESP32 KIT TEST!\r\n");
-        uart_write_bytes(UART_PORT, test_str, strlen(test_str));
-        vTaskDelay(pdMS_TO_TICKS(2000));
+        // Quét từng node
+        // for(int n = 0; n < sizeof(test_nodes)/sizeof(test_nodes[0]); n++)
+        // {
+        //     uint8_t node_id = test_nodes[n];
+
+        //     // Quét từng trạng thái relay
+        //     for(int s = 0; s < sizeof(test_states)/sizeof(test_states[0]); s++)
+        //     {
+        //         send_relay_cmd(node_id, test_states[s]);
+        //         vTaskDelay(pdMS_TO_TICKS(500)); // Delay giữa các lệnh
+        //     }
+
+        //     // Tắt hết relay sau khi quét xong
+        //     send_relay_cmd(node_id, 0x00);
+        //     vTaskDelay(pdMS_TO_TICKS(200));
+        // }
+
+        vTaskDelay(pdMS_TO_TICKS(1000)); // Delay giữa các vòng quét node
     }
 }
 
